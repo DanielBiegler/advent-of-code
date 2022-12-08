@@ -37,11 +37,12 @@ REGEX_COMMAND_LS = r'^(?:(?P<size>\d+) (?P<filename>\S+)|dir (?P<dirname>\S+))'
 # Maybe this gets fixed with part2
 
 # TODO got the parsing down but needs(?) to be put into a tree structure for iteration
+# TODO Add the children in the `ls` step instead of `cd`
 
 fs = Node( FileType.DIR, "/", None, None )  # TODO doesnt get used
 with open('./test.txt', 'r') as input_file:
     history = input_file.read()
-    directory_stack = deque()  # current directory is on top (right)
+    dir_stack: deque[str] = deque()  # current directory is on top (right)
     # Grouping of commands with their output
     for matched_command in re.finditer(REGEX_COMMANDS, history, re.DOTALL+re.MULTILINE):
         command = matched_command.groupdict()["command"]
@@ -53,16 +54,18 @@ with open('./test.txt', 'r') as input_file:
             cd_arg = re.match(REGEX_COMMAND_CD, matched_command.group()).group(1)
             print(f"GOING INTO '{cd_arg}'")
             if cd_arg == "..":  # go back
-                directory_stack.pop()  # will raise error if empty, thats ok lets crash
+                dir_stack.pop()  # will raise error if empty, thats ok lets crash
             else:
-                directory_stack.append(cd_arg)
-            print("Stack:", directory_stack)
+                dir_stack.append(cd_arg)
+            print("Stack:", dir_stack)
 
         elif command == "ls":
             groups = tuple( re.finditer(REGEX_COMMAND_LS, matched_command.group(), re.MULTILINE) )
-            print(f'Listing {len(groups)} files in folder "{directory_stack[-1]}":')
+            print(f'Listing {len(groups)} files in folder "{dir_stack[-1]}":')
             for g in groups:
-                print("  -", g.groupdict())
+                lookup = g.groupdict()
+                dirname = lookup["dirname"]
+                # TODO add to parents-children list
 
         else:
             raise RuntimeError(f'Unexpected Command found: "{command}"')
